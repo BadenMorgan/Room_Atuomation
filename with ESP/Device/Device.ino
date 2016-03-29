@@ -6,12 +6,12 @@
 ////////////////////////////////////////////////////
 
 //change to same file location so program is fully transportable
+#include <SoftwareSerial.h>
 #include <Wire.h>
 #include "Time.h"
 #include "DS1307RTC.h"
 #include <SPI.h>
-#include "Adafruit_GFX.h"
-#include "Adafruit_PCD8544.h"
+#include "PCD8544_SPI.h"
 #include "SoftReset.h"
 #include "OneWire.h"
 #include "DallasTemperature.h"
@@ -108,6 +108,16 @@ uint8_t heatersON = 0;
 
 //variable to decide what should be displayed
 uint8_t disp = 1;
+byte settingsdisp = 0;
+////////////////////////////////////////////////////
+//__________________________________________________
+
+//macros
+
+////////////////////////////////////////////////////
+#define _DISPLAY_
+//#define MAINDEBUG
+#define WIFIPRESENT
 
 ////////////////////////////////////////////////////
 //__________________________________________________
@@ -115,9 +125,9 @@ uint8_t disp = 1;
 //object definitions
 
 ////////////////////////////////////////////////////
-//#define _DISPLAY_
+
 #ifdef _DISPLAY_
-Adafruit_PCD8544 display = Adafruit_PCD8544(3, 2, A3);
+PCD8544_SPI lcd;
 #endif
 // Setup a oneWire instance to communicate with any OneWire devices
 // (not just Maxim/Dallas temperature ICs)
@@ -134,14 +144,6 @@ decode_results results;
 //esp module decleration
 ESP8266 esp8266(1000);
 
-////////////////////////////////////////////////////
-//__________________________________________________
-
-//macros
-
-////////////////////////////////////////////////////
-
-//#define MAINDEBUG
 
 ////////////////////////////////////////////////////
 //__________________________________________________
@@ -161,11 +163,12 @@ void setup() {
   InitPins();
 #ifdef _DISPLAY_
   InitDisplay();
-  display.clearDisplay();
-  display.print(F("Connecting ESP"));
-  display.display();
+  lcd.clear();
+  lcd.print(F("Connecting ESP"));
 #endif
+#ifdef WIFIPRESENT
   esp8266.initESP8266();//connect to broker with username and password
+#endif
   InitVaraibles();
   sensors.begin();
   irrecv.enableIRIn(); // Start the receiver
@@ -189,7 +192,9 @@ void loop() {
   TimedWake();
   TimedOutput();
   HeatControl();
+  #ifdef WIFIPRESENT
   esp8266.MQTTProcess(SubhQue, SubExec, PublishQue);
+  #endif
   if (WakeMode) {
     AwakeMode();
     RelayCounter();
@@ -209,9 +214,7 @@ void loop() {
 //initializes the lcd display
 #ifdef _DISPLAY_
 void InitDisplay() {
-  display.begin();
-  display.setContrast(50);
-  display.display(); // show splashscreen
+  lcd.begin();
   //delay(2000);
   //display.clearDisplay();   // clears the screen and buffer
 }
@@ -296,54 +299,47 @@ void DisplayInfoUpdate() {
   volatile uint8_t second2 = 0;
 
   tmElements_t tm;
-
-  if (RTC.read(tm)) {
+  byte tempseconds = seconds;
+  seconds = tm.Second;
+  if ((RTC.read(tm)) && (seconds != tempseconds)) {
     hours = tm.Hour;
     minutes = tm.Minute;
-    seconds = tm.Second;
     days = tm.Day;
     months = tm.Month;
     years = tmYearToCalendar(tm.Year);
 #ifdef _DISPLAY_
-    display.clearDisplay();
-    display.print(F("Time:"));
-    display.setCursor(0, 8);
-    print2digits(hours);
-    display.print(F(":"));
-    print2digits(minutes);
-    display.print(F(":"));
-    print2digits(seconds);
+    lcd.clear();
 
-    display.setCursor(0, 16);
-    display.print(F("Date (D/M/Y):"));
+    lcd.print(F("Time:         "));
+    lcd.print(hours);
+    lcd.print(F(":"));
+    lcd.print(minutes);
+    lcd.print(F(":"));
+    lcd.print(seconds);
+    lcd.print(F("      "));
 
-    display.setCursor(0, 24);
-    print2digits(days);
-    display.print(F("/"));
-    print2digits(months);
-    display.print(F("/"));
-    display.print(years);
+    lcd.print(F("Date (D/M/Y): "));
+    lcd.print(days);
+    lcd.print(F("/"));
+    lcd.print(months);
+    lcd.print(F("/"));
+    lcd.print(years);
+    lcd.print(F("    "));
 
-    display.setCursor(0, 32);
-    display.print(F("Temp:"));
-    display.setCursor(0, 40);
+    lcd.print(F("Temp:         "));
     first2 = temperature;
     second2 = ((temperature - first2) * 100);
-    print2digits(first2);
-    display.print(F("."));
-    print2digits(second2);
-    display.display();
-    //delay(100);
+    lcd.print(first2);
+    lcd.print(F("."));
+    lcd.print(second2);
 #endif
   } else {
 #ifdef _DISPLAY_
     if (RTC.chipPresent()) {
 
-      display.print("run SetTime example");
-      display.display();
+      lcd.print(F("run SetTime example"));
     } else {
-      display.print("RTC read error");
-      display.display();
+      lcd.print(F("RTC read error"));
     }
     delay(9000);
 #endif
@@ -356,9 +352,9 @@ void DisplayInfoUpdate() {
 #ifdef _DISPLAY_
 void print2digits(int number) {
   if (number >= 0 && number < 10) {
-    display.print(F("0"));
+    lcd.print(F("0"));
   }
-  display.print(number);
+  lcd.print(number);
 }
 #endif
 
@@ -621,89 +617,106 @@ void HeatControl() {
 //function that will display settings for a period of time
 #ifdef _DISPLAY_
 void DisplaySettings() {
-  volatile uint32_t diff = millis() - Stamp3;
+  uint32_t diff = millis() - Stamp3;
   if (diff >= 41000) {
     disp = 1;
-  } else if (diff <= 11000) {
-    display.clearDisplay();
+  } else if ((diff <= 11000) && (settingsdisp == 0)) {
+    lcd.clear();
 
-    display.print(F("Countdown: "));
-    display.print((CountDown / 1000) / 60);
+    lcd.print(F("Countdown: "));
+    byte temp1 = (CountDown / 1000) / 60;
+    if (temp1 < 10) {
+      lcd.print(F("00"));
+    } else if (temp1 < 100) {
+      lcd.print(F("0"));
+    }
+    lcd.print(temp1);
 
-    display.setCursor(0, 8);
-    display.print(F("BuzzAlert: "));
-    display.print(Buzz);
+    lcd.print(F("BuzzAlert: "));
+    lcd.print(Buzz);
+    lcd.print(F("  "));
 
-    display.setCursor(0, 16);
-    display.print(F("Max Temp.: "));
-    display.print(tempmax );
+    lcd.print(F("Max Temp.: "));
+    if (tempmax < 10) {
+      lcd.print(F("0"));
+    }
+    lcd.print(tempmax );
+    lcd.print(F(" "));
 
-    display.setCursor(0, 24);
-    display.print(F("Min Temp.: "));
-    display.print(tempmin );
+    lcd.print(F("Min Temp.: "));
+    if (tempmin < 10) {
+      lcd.print(F("0"));
+    }
+    lcd.print(tempmin );
+    lcd.print(F(" "));
 
-    display.setCursor(0, 32);
-    display.print(F("Temp Cntrl: "));
-    display.print(heatersON);
+    lcd.print(F("Temp Cntrl: "));
+    lcd.print(heatersON);
+    settingsdisp++;
+  } else if ((diff <= 21000) && (diff >= 11000) && (settingsdisp == 1)) {
+    lcd.clear();
 
-    display.display();
-  } else if (diff <= 21000) {
-    display.clearDisplay();
+    lcd.print(F("Light Trip:   "));
 
-    display.print(F("Light Trip: "));
+    lcd.print(tripval * 2);
+    lcd.print(F("           "));
 
-    display.setCursor(0, 8);
-    display.print(tripval * 2);
+    lcd.print(F("Current Light:"));
 
-    display.setCursor(0, 16);
-    display.print(F("Current Light: "));
+    lcd.print(analogRead(LDR));
+    settingsdisp++;
+  } else if ((diff <= 31000) && (diff >= 21000) && (settingsdisp == 2)) {
+    lcd.clear();
 
-    display.setCursor(0, 24);
-    display.print(analogRead(LDR));
+    lcd.print(F("Hour On: "));
+    if (THourON < 10) {
+      lcd.print(F("0"));
+    }
+    lcd.print(THourON);
+    lcd.print(F("   "));
 
-    display.display();
-  } else if (diff <= 31000) {
+    lcd.print(F("Minute On: "));
+    if (TMinuteON < 10) {
+      lcd.print(F("0"));
+    }
+    lcd.print(TMinuteON);
+    lcd.print(F(" "));
 
-    display.clearDisplay();
+    lcd.print(F("Hour Off: "));
+    if (THourOFF < 10) {
+      lcd.print(F("0"));
+    }
+    lcd.print(THourOFF);
+    lcd.print(F("  "));
 
-    display.print(F("Hour On: "));
-    display.print(THourON);
+    lcd.print(F("Minute Off: "));
+    if (TMinuteOFF < 10) {
+      lcd.print(F("0"));
+    }
+    lcd.print(TMinuteOFF);
 
-    display.setCursor(0, 8);
-    display.print(F("Minute On: "));
-    display.print(TMinuteON);
+    settingsdisp++;
+  } else if ((diff <= 41000) && (diff >= 31000) && (settingsdisp == 3)) {
+    lcd.clear();
 
-    display.setCursor(0, 16);
-    display.print(F("Hour Off: "));
-    display.print(THourOFF);
+    lcd.print(F("Wake hour:    "));
+    lcd.print(Whour);
+    if (Whour < 10) {
+      lcd.print(F(" "));
+    }
+    lcd.print(F("            "));
 
-    display.setCursor(0, 24);
-    display.print(F("Minute Off: "));
-    display.print(TMinuteOFF);
+    lcd.print(F("Wake Minute:  "));
+    Wminutes = 8;
+    lcd.print(Wminutes);
+    if (Whour < 10) {
+      lcd.print(F(" "));
+    }
+    lcd.print(F("            "));
 
-    display.display();
-  } else if (diff <= 41000) {
-
-    display.clearDisplay();
-
-    display.print(F("Wake hour: "));
-
-    display.setCursor(0, 8);
-
-    display.print(Whour);
-
-    display.setCursor(0, 16);
-    display.print(F("Wake Minute: "));
-
-    display.setCursor(0, 24);
-    display.print(Wminutes);
-
-    display.setCursor(0, 32);
-    display.print(F("    End of    "));
-    display.setCursor(0, 40);
-    display.print(F("   Settings"));
-
-    display.display();
+    lcd.print(F("    End of    "));
+    lcd.print(F("   Settings"));
+    settingsdisp = 0;
   }
 }
 #endif
@@ -810,10 +823,8 @@ void EEPROM2variables() {
 //initialize variables
 void InitVaraibles() {
 #ifdef _DISPLAY_
-  display.clearDisplay();
-  display.println(F("Loading"));
-  display.println(F("Variables"));
-  display.display();
+  lcd.clear();
+  lcd.print(F("Loading       Variables"));
 #endif
   if (CodeCheck()) {
     EEPROM2variables();
