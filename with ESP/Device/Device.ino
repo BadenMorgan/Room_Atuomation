@@ -6,7 +6,7 @@
 ////////////////////////////////////////////////////
 
 //change to same file location so program is fully transportable
-#include <SoftwareSerial.h>
+//#include <SoftwareSerial.h>
 #include <Wire.h>
 #include "Time.h"
 #include "DS1307RTC.h"
@@ -159,19 +159,40 @@ void setup() {
 #endif
 
   Wire.begin();
+#ifdef MAINDEBUG
+  Serial.print(1);
+#endif
   UpdateExpander(3);
+#ifdef MAINDEBUG
+  Serial.print(2);
+#endif
   InitPins();
+#ifdef MAINDEBUG
+  Serial.print(3);
+#endif
 #ifdef _DISPLAY_
   InitDisplay();
   lcd.clear();
   lcd.print(F("Connecting ESP"));
 #endif
+#ifdef MAINDEBUG
+  Serial.print(4);
+#endif
 #ifdef WIFIPRESENT
   esp8266.initESP8266();//connect to broker with username and password
 #endif
   InitVaraibles();
+#ifdef MAINDEBUG
+  Serial.print(5);
+#endif
   sensors.begin();
+#ifdef MAINDEBUG
+  Serial.print(6);
+#endif
   irrecv.enableIRIn(); // Start the receiver
+#ifdef MAINDEBUG
+  Serial.print(7);
+#endif
 }
 
 void loop() {
@@ -192,9 +213,9 @@ void loop() {
   TimedWake();
   TimedOutput();
   HeatControl();
-  #ifdef WIFIPRESENT
+#ifdef WIFIPRESENT
   esp8266.MQTTProcess(SubhQue, SubExec, PublishQue);
-  #endif
+#endif
   if (WakeMode) {
     AwakeMode();
     RelayCounter();
@@ -277,8 +298,8 @@ void WWDMWSwitchCheck() {
     expander2data &= 0xF7;
   } else expander2data |= 0x08;
   if ((esp8266.connectd & 2) == 2) {
-    expander2data &= 0xEF;
-  } else expander2data |= 0x10;
+    expander2data |= 0x10;
+  } else expander2data &= 0xEF;
   //update the indicators
   UpdateExpander(2);
 }
@@ -300,39 +321,42 @@ void DisplayInfoUpdate() {
 
   tmElements_t tm;
   byte tempseconds = seconds;
-  seconds = tm.Second;
-  if ((RTC.read(tm)) && (seconds != tempseconds)) {
-    hours = tm.Hour;
-    minutes = tm.Minute;
-    days = tm.Day;
-    months = tm.Month;
-    years = tmYearToCalendar(tm.Year);
+
+  if (RTC.read(tm)) {
+    seconds = tm.Second;
+    if ((seconds != tempseconds)) {
+      hours = tm.Hour;
+      minutes = tm.Minute;
+      days = tm.Day;
+      months = tm.Month;
+      years = tmYearToCalendar(tm.Year);
 #ifdef _DISPLAY_
-    lcd.clear();
+      lcd.clear();
 
-    lcd.print(F("Time:         "));
-    lcd.print(hours);
-    lcd.print(F(":"));
-    lcd.print(minutes);
-    lcd.print(F(":"));
-    lcd.print(seconds);
-    lcd.print(F("      "));
+      lcd.print(F("Time:         "));
+      print2digits(hours);
+      lcd.print(F(":"));
+      print2digits(minutes);
+      lcd.print(F(":"));
+      print2digits(seconds);
+      lcd.print(F("      "));
 
-    lcd.print(F("Date (D/M/Y): "));
-    lcd.print(days);
-    lcd.print(F("/"));
-    lcd.print(months);
-    lcd.print(F("/"));
-    lcd.print(years);
-    lcd.print(F("    "));
+      lcd.print(F("Date (D/M/Y): "));
+      print2digits(days);
+      lcd.print(F("/"));
+      print2digits(months);
+      lcd.print(F("/"));
+      lcd.print(years);
+      lcd.print(F("    "));
 
-    lcd.print(F("Temp:         "));
-    first2 = temperature;
-    second2 = ((temperature - first2) * 100);
-    lcd.print(first2);
-    lcd.print(F("."));
-    lcd.print(second2);
+      lcd.print(F("Temp:         "));
+      first2 = temperature;
+      second2 = ((temperature - first2) * 100);
+      print2digits(first2);
+      lcd.print(F("."));
+      print2digits(second2);
 #endif
+    }
   } else {
 #ifdef _DISPLAY_
     if (RTC.chipPresent()) {
@@ -753,16 +777,10 @@ uint8_t CodeCheck() {
   if (EEPROM.read(0) != 255) {
     flag = 0;
   }
-  if (EEPROM.read(1) != 35) {
+  if (EEPROM.read(2) != 35) {
     flag = 0;
   }
-  if (EEPROM.read(2) != 72) {
-    flag = 0;
-  }
-  if (EEPROM.read(3) != 64) {
-    flag = 0;
-  }
-  if (EEPROM.read(4) != 255) {
+  if (EEPROM.read(4) != 72) {
     flag = 0;
   }
   return flag;
@@ -772,52 +790,42 @@ uint8_t CodeCheck() {
 void LoadEEPROMDefaults() {
   //unique code for identifying first run
   EEPROM.write(0, 255);
-  EEPROM.write(1, 35);
-  EEPROM.write(2, 72);
-  EEPROM.write(3, 64);
-  EEPROM.write(4, 255);
+  EEPROM.write(3, 35);
+  EEPROM.write(4, 72);
   //default values for
   uint8_t tempcount = (CountDown / 1000) / 60;
-#ifdef MAINDEBUG
-  Serial.println("loaded:");
-  Serial.println(tempcount);
-#endif
-  EEPROM.write(5, tempcount);
-  EEPROM.write(6, Buzz );
-  EEPROM.write(7, WakeMode );
-  EEPROM.write(8, tempmax );
-  EEPROM.write(9, tempmin );
-  EEPROM.write(10, tripval );
-  EEPROM.write(11, THourON );
-  EEPROM.write(12, TMinuteON );
-  EEPROM.write(13, THourOFF );
-  EEPROM.write(14, TMinuteOFF );
-  EEPROM.write(15, heatersON );
-  EEPROM.write(16, Whour );
-  EEPROM.write(17, Wminutes );
+  EEPROM.write(6, tempcount);
+  EEPROM.write(8, Buzz );
+  EEPROM.write(10, WakeMode );
+  EEPROM.write(12, tempmax );
+  EEPROM.write(14, tempmin );
+  EEPROM.write(16, tripval );
+  EEPROM.write(18, THourON );
+  EEPROM.write(20, TMinuteON );
+  EEPROM.write(22, THourOFF );
+  EEPROM.write(24, TMinuteOFF );
+  EEPROM.write(26, heatersON );
+  EEPROM.write(28, Whour );
+  EEPROM.write(30, Wminutes );
 }
 
 //load varaible from eeprom
 void EEPROM2variables() {
-  uint32_t tempcount = EEPROM.read(5);
+  uint32_t tempcount = EEPROM.read(6);
   tempcount = tempcount * 1000 * 60;
-#ifdef MAINDEBUG
-  Serial.println("retrieved:");
-  Serial.println(tempcount);
-#endif
   CountDown = tempcount;
-  Buzz = EEPROM.read(6);
-  WakeMode = EEPROM.read(7);
-  tempmax = EEPROM.read(8);
-  tempmin = EEPROM.read(9);
-  tripval = EEPROM.read(10);
-  THourON = EEPROM.read(11);
-  TMinuteON = EEPROM.read(12);
-  THourOFF = EEPROM.read(13);
-  TMinuteOFF = EEPROM.read(14);
-  heatersON = EEPROM.read(15);
-  Whour = EEPROM.read(16);
-  Wminutes = EEPROM.read(17);
+  Buzz = EEPROM.read(8);
+  WakeMode = EEPROM.read(10);
+  tempmax = EEPROM.read(12);
+  tempmin = EEPROM.read(14);
+  tripval = EEPROM.read(16);
+  THourON = EEPROM.read(18);
+  TMinuteON = EEPROM.read(20);
+  THourOFF = EEPROM.read(22);
+  TMinuteOFF = EEPROM.read(24);
+  heatersON = EEPROM.read(26);
+  Whour = EEPROM.read(28);
+  Wminutes = EEPROM.read(30);
 }
 
 //initialize variables
