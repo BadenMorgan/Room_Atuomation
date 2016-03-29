@@ -388,6 +388,10 @@ void IRreceive() {
     //set 1st relay
     if (WakeMode) {
       if (results.value == 0x41BEE01F) {
+#ifdef _DISPLAY_
+        Serial.println("changed val");
+        Serial.println(expander1data);
+#endif
         expander1data ^= 0b100000;
         Stamp = millis();
       }
@@ -872,12 +876,72 @@ void SubhQue() {
 void SubExec() {
   //IGNORE
   ////////////////////////////////
-  /*if (esp8266.Sub1->len > 0) { //receivedmsg != "") {
-    if (( ((String)(esp8266.Sub1->topic)) == "hello") && (esp8266.Sub1->payloadlen == 4)) {
-      for (int i = 0 ; i < 4 ; i++ ) {
-        digitalWrite(2 + i, (byte)(esp8266.Sub1->payload[i]) - 48);
+  if (esp8266.Sub1->len > 0) {
+    if (((String)(esp8266.Sub1->topic)) == "c/0") {
+      byte function = (byte)(esp8266.Sub1->payload[0]);
+      switch (function) {
+        case 0:
+          {
+            expander1data &= 0xC0;
+            expander1data |= esp8266.Sub1->payload[1];
+            byte QuickSettings = esp8266.Sub1->payload[2];
+
+            if (((QuickSettings & 1) == 1) && (!WakeMode)) {
+              WakeMode = 1;
+              WakeToSleep();
+            } else if (WakeMode) {
+              WakeMode = 0;
+              WakeToSleep ();
+            }
+
+            if ((QuickSettings & 2) == 2) {
+              Buzz = 1;
+            } else Buzz = 0;
+
+            if ((QuickSettings & 4) == 4) {
+              heatersON = 1;
+            } else heatersON = 0;
+
+            if ((QuickSettings & 8) == 8) {
+              timer = 1;
+            } else timer = 0;
+
+            break;
+          }
+        case 1:
+          {
+            break;
+          }
+        case 2:
+          {
+            break;
+          }
+        case 3:
+          {
+            break;
+          }
+        case 4:
+          {
+            break;
+          }
+        case 5:
+          {
+            break;
+          }
+        case 6:
+          {
+            break;
+          }
+        case 7:
+          {
+            break;
+          }
+        default:
+          {
+            break;
+          }
       }
     }
     esp8266.Sub1->len = 0;
-  }*/
+  }
 }
