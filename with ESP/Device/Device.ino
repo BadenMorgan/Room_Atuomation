@@ -299,7 +299,9 @@ void WWDMWSwitchCheck() {
   } else expander2data |= 0x08;
   if ((esp8266.connectd & 2) == 2) {
     expander2data |= 0x10;
-  } else expander2data &= 0xEF;
+  } else{
+    expander2data &= 0xEF;
+  }
   //update the indicators
   UpdateExpander(2);
 }
@@ -388,10 +390,6 @@ void IRreceive() {
     //set 1st relay
     if (WakeMode) {
       if (results.value == 0x41BEE01F) {
-#ifdef _DISPLAY_
-        Serial.println("changed val");
-        Serial.println(expander1data);
-#endif
         expander1data ^= 0b100000;
         Stamp = millis();
       }
@@ -860,7 +858,7 @@ void PublishQue() {
   indicator1 |= heatersON << 5;
   byte msg[11] = {0x01, hours, minutes, seconds, days, months, tempyears, first2, second2, indicator1, expander1data};                                //message payload of MQTT package, put your payload here
   String topic = "d/0";                                  //topic of MQTT package, put your topic here
-  esp8266.MQTTPublish(topic, &msg[0], 10);
+  esp8266.MQTTPublish(topic, &msg[0], 11 );
 }
 
 /////////////////////////

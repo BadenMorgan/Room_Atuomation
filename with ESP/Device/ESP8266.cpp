@@ -578,6 +578,7 @@ inline void ESP8266::DebugPrint(int msg) {
 
 //check that the esp is connected to the wifi
 byte ESP8266::WifiCheck(String SSID) {
+  ClearIncomingSerial();
   byte Wififlag = 1;
   Serial.println(F("AT+CWJAP?"));                                           //requist which SSID the ESP is connected to
 #ifdef _DEBUG_

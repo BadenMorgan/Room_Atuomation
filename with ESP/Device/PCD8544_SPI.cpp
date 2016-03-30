@@ -7,7 +7,7 @@ PCD8544_SPI::PCD8544_SPI()
 
 void PCD8544_SPI::begin(bool invert)
 {
-	this->begin(invert, 0xBD, 0x04, 0x12);
+	this->begin(invert, 0xBC, 0x04, 0x12);
 }
 
 void PCD8544_SPI::begin(bool invert, uint8_t vop, uint8_t tempCoef, uint8_t bias)
