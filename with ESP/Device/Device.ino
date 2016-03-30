@@ -898,7 +898,7 @@ void SubExec() {
             expander1data &= 0xC0;
             expander1data |= esp8266.Sub1->payload[1];
             byte QuickSettings = esp8266.Sub1->payload[2];
-
+            UpdateExpander(1);
             if (((QuickSettings & 1) == 1) && (!WakeMode)) {
               WakeMode = 1;
               WakeToSleep();
