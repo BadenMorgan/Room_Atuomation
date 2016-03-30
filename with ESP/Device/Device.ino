@@ -109,6 +109,14 @@ uint8_t heatersON = 0;
 //variable to decide what should be displayed
 uint8_t disp = 1;
 byte settingsdisp = 0;
+
+//last movement variables
+byte LastSecond = 0;
+byte lastMinute = 0;
+byte lastHour = 0;
+byte lastDay = 0;
+byte lastMonth = 0;
+
 ////////////////////////////////////////////////////
 //__________________________________________________
 
@@ -296,10 +304,17 @@ void WWDMWSwitchCheck() {
   //Check motion sensor
   if (!digitalRead(motion)) {
     expander2data &= 0xF7;
-  } else expander2data |= 0x08;
+  } else {
+    LastSecond = seconds;
+    lastMinute = minutes;
+    lastHour = hours;
+    lastDay =days;
+    lastMonth = months;
+    expander2data |= 0x08;
+  }
   if ((esp8266.connectd & 2) == 2) {
     expander2data |= 0x10;
-  } else{
+  } else {
     expander2data &= 0xEF;
   }
   //update the indicators
@@ -856,9 +871,9 @@ void PublishQue() {
   indicator1 |= Buzz << 4;
   indicator1 ^= heatersON << 5;
   indicator1 |= heatersON << 5;
-  byte msg[11] = {0x01, hours, minutes, seconds, days, months, tempyears, first2, second2, indicator1, expander1data};                                //message payload of MQTT package, put your payload here
+  byte msg[16] = {0x01, hours, minutes, seconds, days, months, tempyears, first2, second2, indicator1, expander1data, LastSecond, lastMinute, lastHour, lastDay, lastMonth};                                //message payload of MQTT package, put your payload here
   String topic = "d/0";                                  //topic of MQTT package, put your topic here
-  esp8266.MQTTPublish(topic, &msg[0], 11 );
+  esp8266.MQTTPublish(topic, &msg[0], 16 );
 }
 
 /////////////////////////
