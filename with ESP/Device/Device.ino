@@ -913,7 +913,6 @@ void SubExec() {
       switch (function) {
         case 0:
           {
-<<<<<<< HEAD
             expander1data &= 0xC0;
             expander1data |= esp8266.Sub1->payload[1];
             byte QuickSettings = esp8266.Sub1->payload[2];
@@ -924,8 +923,7 @@ void SubExec() {
             } else if (((QuickSettings & 1) == 0) && WakeMode) {
               WakeMode = 0;
               WakeToSleep ();
-=======
-            if (esp8266.Sub1->len == 3) {
+            }if (esp8266.Sub1->len == 3) {
               expander1data &= 0xC0;
               expander1data |= esp8266.Sub1->payload[1];
               byte QuickSettings = esp8266.Sub1->payload[2];
@@ -949,7 +947,6 @@ void SubExec() {
               if ((QuickSettings & 8) == 8) {
                 timer = 1;
               } else timer = 0;
->>>>>>> origin/master
             }
             receivedflag = 1;
             break;
