@@ -902,7 +902,7 @@ void SubExec() {
             if (((QuickSettings & 1) == 1) && (!WakeMode)) {
               WakeMode = 1;
               WakeToSleep();
-            } else if (WakeMode) {
+            } else if (((QuickSettings & 1) == 0) && WakeMode) {
               WakeMode = 0;
               WakeToSleep ();
             }
