@@ -419,18 +419,22 @@ void IRreceive() {
       //set 3rd relay
       if (results.value == 0x41BE708F) {
         expander1data ^= 0b1000;
+        heatersON = 0;
       }
       //set 4th relay
       if (results.value == 0x41BE40BF) {
         expander1data ^= 0b100;
+        heatersON = 0;
       }
       //set 5th relay
       if (results.value == 0x41BEC03F) {
         expander1data ^= 0b10;
+        heatersON = 0;
       }
       //set 6th relay
       if (results.value == 0x41BEB04F) {
         expander1data ^= 0b1;
+        timer = 0;
       }
       //update values
       UpdateExpander(1);
@@ -863,23 +867,31 @@ void InitVaraibles() {
 }
 
 void PublishQue() {
-  //publish a message using an array
-  byte tempyears = (byte) (years - 2000);
-  byte first2 = temperature;
-  byte second2 = (byte) ((temperature - first2) * 100);
-  byte indicator1 = expander2data & 0x07;
-  indicator1 ^= WakeMode << 3;
-  indicator1 |= WakeMode << 3;
-  indicator1 ^= Buzz << 4;
-  indicator1 |= Buzz << 4;
-  indicator1 ^= heatersON << 5;
-  indicator1 |= heatersON << 5;
-  indicator1 ^= timer << 6;
-  indicator1 |= timer << 6;  
-  byte msg[17] = {0x01, hours, minutes, seconds, days, months, tempyears, first2, second2, indicator1, expander1data, LastSecond, lastMinute, lastHour, lastDay, lastMonth, receivedflag};                                //message payload of MQTT package, put your payload here
-  String topic = "d/0";                                  //topic of MQTT package, put your topic here
-  esp8266.MQTTPublish(topic, &msg[0], 16 );
-  receivedflag = 0;
+  if ((receivedflag & 2) != 2) {
+    //publish a message using an array
+    byte tempyears = (byte) (years - 2000);
+    byte first2 = temperature;
+    byte second2 = (byte) ((temperature - first2) * 100);
+    byte indicator1 = expander2data & 0x07;
+    indicator1 ^= WakeMode << 3;
+    indicator1 |= WakeMode << 3;
+    indicator1 ^= Buzz << 4;
+    indicator1 |= Buzz << 4;
+    indicator1 ^= heatersON << 5;
+    indicator1 |= heatersON << 5;
+    indicator1 ^= timer << 6;
+    indicator1 |= timer << 6;
+    byte msg[17] = {0x01, hours, minutes, seconds, days, months, tempyears, first2, second2, indicator1, expander1data, LastSecond, lastMinute, lastHour, lastDay, lastMonth, receivedflag};                                //message payload of MQTT package, put your payload here
+    String topic = "d/0";                                  //topic of MQTT package, put your topic here
+    esp8266.MQTTPublish(topic, &msg[0], 17 );
+    receivedflag = 0;
+  }else{
+    byte tempcountdown = (byte)((CountDown/1000)/60); 
+    byte msg[11] = {0x02, tempcountdown, tempmax, tempmin, tripval, THourON, TMinuteON, THourOFF, TMinuteOFF, Whour, Wminutes};                                //message payload of MQTT package, put your payload here
+    String topic = "d/0";                                  //topic of MQTT package, put your topic here
+    esp8266.MQTTPublish(topic, &msg[0], 11 );
+    receivedflag = 0;    
+  }
 }
 
 /////////////////////////
@@ -931,6 +943,9 @@ void SubExec() {
           }
         case 1:
           {
+            if (esp8266.Sub1->len == 1) {
+              receivedflag = 3;
+            }
             break;
           }
         case 2:
