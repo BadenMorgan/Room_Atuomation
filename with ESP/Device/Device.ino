@@ -889,7 +889,7 @@ void PublishQue() {
     byte secondpart = LDRVal & 0xFF;
     byte msg[19] = {0x01, hours, minutes, seconds, days, months, tempyears, first2, second2, indicator1, expander1data, LastSecond, lastMinute, lastHour, lastDay, lastMonth, receivedflag, firstpart, secondpart};                              //message payload of MQTT package, put your payload here
     String topic = "d/0";                                  //topic of MQTT package, put your topic here
-    esp8266.MQTTPublish(topic, &msg[0], 17 );
+    esp8266.MQTTPublish(topic, &msg[0], 19 );
     receivedflag = 0;
   } else {
     byte tempcountdown = (byte)((CountDown / 1000) / 60);
@@ -935,24 +935,24 @@ void SubExec() {
                   }
                 case 1:
                   {
-                    if(Buzz){
+                    if (Buzz) {
                       Buzz = 0;
-                    }else Buzz = 1;                    
+                    } else Buzz = 1;
                     break;
                   }
                 case 2:
                   {
-                    if(timer){
+                    if (timer) {
                       timer = 0;
-                    }else timer =1;
+                    } else timer = 1;
                     break;
                   }
                 case 3:
                   {
-                    if(heatersON){
+                    if (heatersON) {
                       heatersON = 0;
-                    }else heatersON = 1;
-                    
+                    } else heatersON = 1;
+
                     break;
                   }
                 default:
@@ -960,53 +960,53 @@ void SubExec() {
                     break;
                   }
               }
-          receivedflag = 1;
-        }
-        break;
-    }
-  case 1:
-    {
-      if (esp8266.Sub1->payloadlen == 2) {
-          expander1data ^= esp8266.Sub1->payload[1];
-          UpdateExpander(1);
-          receivedflag = 1;
-        }
-        break;
-      }
-    case 2:
-      {
-        if (esp8266.Sub1->payloadlen == 1) {
-          receivedflag = 3;
-        }
-        break;
-      }
-    case 3:
-      {
+              receivedflag = 1;
+            }
+            break;
+          }
+        case 1:
+          {
+            if (esp8266.Sub1->payloadlen == 2) {
+              expander1data ^= esp8266.Sub1->payload[1];
+              UpdateExpander(1);
+              receivedflag = 1;
+            }
+            break;
+          }
+        case 2:
+          {
+            if (esp8266.Sub1->payloadlen == 1) {
+              receivedflag = 3;
+            }
+            break;
+          }
+        case 3:
+          {
 
-        break;
-      }
-    case 4:
-      {
-        break;
-      }
-    case 5:
-      {
-        break;
-      }
-    case 6:
-      {
-        break;
-      }
-    case 7:
-      {
-        break;
-      }
-    default:
-      {
-        break;
+            break;
+          }
+        case 4:
+          {
+            break;
+          }
+        case 5:
+          {
+            break;
+          }
+        case 6:
+          {
+            break;
+          }
+        case 7:
+          {
+            break;
+          }
+        default:
+          {
+            break;
+          }
       }
     }
+    esp8266.Sub1->len = 0;
   }
-  esp8266.Sub1->len = 0;
-}
 }
