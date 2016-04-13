@@ -885,12 +885,12 @@ void PublishQue() {
     String topic = "d/0";                                  //topic of MQTT package, put your topic here
     esp8266.MQTTPublish(topic, &msg[0], 17 );
     receivedflag = 0;
-  }else{
-    byte tempcountdown = (byte)((CountDown/1000)/60); 
+  } else {
+    byte tempcountdown = (byte)((CountDown / 1000) / 60);
     byte msg[11] = {0x02, tempcountdown, tempmax, tempmin, tripval, THourON, TMinuteON, THourOFF, TMinuteOFF, Whour, Wminutes};                                //message payload of MQTT package, put your payload here
     String topic = "d/0";                                  //topic of MQTT package, put your topic here
     esp8266.MQTTPublish(topic, &msg[0], 11 );
-    receivedflag = 0;    
+    receivedflag = 0;
   }
 }
 
@@ -913,17 +913,7 @@ void SubExec() {
       switch (function) {
         case 0:
           {
-            expander1data &= 0xC0;
-            expander1data |= esp8266.Sub1->payload[1];
-            byte QuickSettings = esp8266.Sub1->payload[2];
-            UpdateExpander(1);
-            if (((QuickSettings & 1) == 1) && (!WakeMode)) {
-              WakeMode = 1;
-              WakeToSleep();
-            } else if (((QuickSettings & 1) == 0) && WakeMode) {
-              WakeMode = 0;
-              WakeToSleep ();
-            }if (esp8266.Sub1->len == 3) {
+            if (esp8266.Sub1->payloadlen == 3) {
               expander1data &= 0xC0;
               expander1data |= esp8266.Sub1->payload[1];
               byte QuickSettings = esp8266.Sub1->payload[2];
@@ -931,29 +921,41 @@ void SubExec() {
               if (((QuickSettings & 1) == 1) && (!WakeMode)) {
                 WakeMode = 1;
                 WakeToSleep();
-              } else if (WakeMode) {
+              } else if (((QuickSettings & 1) == 0) && WakeMode) {
                 WakeMode = 0;
                 WakeToSleep ();
+              } if (esp8266.Sub1->len == 3) {
+                expander1data &= 0xC0;
+                expander1data |= esp8266.Sub1->payload[1];
+                byte QuickSettings = esp8266.Sub1->payload[2];
+                UpdateExpander(1);
+                if (((QuickSettings & 1) == 1) && (!WakeMode)) {
+                  WakeMode = 1;
+                  WakeToSleep();
+                } else if (((QuickSettings & 1) == 0) && WakeMode) {
+                  WakeMode = 0;
+                  WakeToSleep ();
+                }
+
+                if ((QuickSettings & 2) == 2) {
+                  Buzz = 1;
+                } else Buzz = 0;
+
+                if ((QuickSettings & 4) == 4) {
+                  heatersON = 1;
+                } else heatersON = 0;
+
+                if ((QuickSettings & 8) == 8) {
+                  timer = 1;
+                } else timer = 0;
               }
-
-              if ((QuickSettings & 2) == 2) {
-                Buzz = 1;
-              } else Buzz = 0;
-
-              if ((QuickSettings & 4) == 4) {
-                heatersON = 1;
-              } else heatersON = 0;
-
-              if ((QuickSettings & 8) == 8) {
-                timer = 1;
-              } else timer = 0;
+              receivedflag = 1;
             }
-            receivedflag = 1;
             break;
           }
         case 1:
           {
-            if (esp8266.Sub1->len == 1) {
+            if (esp8266.Sub1->payloadlen == 1) {
               receivedflag = 3;
             }
             break;
@@ -964,6 +966,7 @@ void SubExec() {
           }
         case 3:
           {
+
             break;
           }
         case 4:
