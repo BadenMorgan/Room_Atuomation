@@ -885,7 +885,9 @@ void PublishQue() {
     indicator1 |= heatersON << 5;
     indicator1 ^= timer << 6;
     indicator1 |= timer << 6;
-    byte msg[17] = {0x01, hours, minutes, seconds, days, months, tempyears, first2, second2, indicator1, expander1data, LastSecond, lastMinute, lastHour, lastDay, lastMonth, receivedflag};                                //message payload of MQTT package, put your payload here
+    byte firstpart = (LDRVal & 0xFF00) >> 8;
+    byte secondpart = LDRVal & 0xFF;
+    byte msg[19] = {0x01, hours, minutes, seconds, days, months, tempyears, first2, second2, indicator1, expander1data, LastSecond, lastMinute, lastHour, lastDay, lastMonth, receivedflag, firstpart, secondpart};                              //message payload of MQTT package, put your payload here
     String topic = "d/0";                                  //topic of MQTT package, put your topic here
     esp8266.MQTTPublish(topic, &msg[0], 17 );
     receivedflag = 0;
@@ -917,84 +919,94 @@ void SubExec() {
       switch (function) {
         case 0:
           {
-            if (esp8266.Sub1->payloadlen == 3) {
-              expander1data &= 0xC0;
-              expander1data |= esp8266.Sub1->payload[1];
-              byte QuickSettings = esp8266.Sub1->payload[2];
-              UpdateExpander(1);
-              if (((QuickSettings & 1) == 1) && (!WakeMode)) {
-                WakeMode = 1;
-                WakeToSleep();
-              } else if (((QuickSettings & 1) == 0) && WakeMode) {
-                WakeMode = 0;
-                WakeToSleep ();
-              } if (esp8266.Sub1->len == 3) {
-                expander1data &= 0xC0;
-                expander1data |= esp8266.Sub1->payload[1];
-                byte QuickSettings = esp8266.Sub1->payload[2];
-                UpdateExpander(1);
-                if (((QuickSettings & 1) == 1) && (!WakeMode)) {
-                  WakeMode = 1;
-                  WakeToSleep();
-                } else if (((QuickSettings & 1) == 0) && WakeMode) {
-                  WakeMode = 0;
-                  WakeToSleep ();
-                }
-
-                if ((QuickSettings & 2) == 2) {
-                  Buzz = 1;
-                } else Buzz = 0;
-
-                if ((QuickSettings & 4) == 4) {
-                  heatersON = 1;
-                } else heatersON = 0;
-
-                if ((QuickSettings & 8) == 8) {
-                  timer = 1;
-                } else timer = 0;
+            if (esp8266.Sub1->payloadlen == 2) {
+              byte QuickSettings = esp8266.Sub1->payload[1];
+              switch (QuickSettings) {
+                case 0:
+                  {
+                    if (WakeMode) {
+                      WakeMode = 0;
+                      WakeToSleep ();
+                    } else {
+                      WakeMode = 1;
+                      WakeToSleep();
+                    }
+                    break;
+                  }
+                case 1:
+                  {
+                    if(Buzz){
+                      Buzz = 0;
+                    }else Buzz = 1;                    
+                    break;
+                  }
+                case 2:
+                  {
+                    if(timer){
+                      timer = 0;
+                    }else timer =1;
+                    break;
+                  }
+                case 3:
+                  {
+                    if(heatersON){
+                      heatersON = 0;
+                    }else heatersON = 1;
+                    
+                    break;
+                  }
+                default:
+                  {
+                    break;
+                  }
               }
-              receivedflag = 1;
-            }
-            break;
-          }
-        case 1:
-          {
-            if (esp8266.Sub1->payloadlen == 1) {
-              receivedflag = 3;
-            }
-            break;
-          }
-        case 2:
-          {
-            break;
-          }
-        case 3:
-          {
+          receivedflag = 1;
+        }
+        break;
+    }
+  case 1:
+    {
+      if (esp8266.Sub1->payloadlen == 2) {
+          expander1data ^= esp8266.Sub1->payload[1];
+          UpdateExpander(1);
+          receivedflag = 1;
+        }
+        break;
+      }
+    case 2:
+      {
+        if (esp8266.Sub1->payloadlen == 1) {
+          receivedflag = 3;
+        }
+        break;
+      }
+    case 3:
+      {
 
-            break;
-          }
-        case 4:
-          {
-            break;
-          }
-        case 5:
-          {
-            break;
-          }
-        case 6:
-          {
-            break;
-          }
-        case 7:
-          {
-            break;
-          }
-        default:
-          {
-            break;
-          }
+        break;
+      }
+    case 4:
+      {
+        break;
+      }
+    case 5:
+      {
+        break;
+      }
+    case 6:
+      {
+        break;
+      }
+    case 7:
+      {
+        break;
+      }
+    default:
+      {
+        break;
       }
     }
-    esp8266.Sub1->len = 0;
   }
+  esp8266.Sub1->len = 0;
+}
 }
