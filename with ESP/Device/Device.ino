@@ -120,6 +120,9 @@ byte lastMonth = 0;
 //flag used to determine whether a command was executed properly or not
 byte receivedflag = 0;
 
+//saves value on ldr
+uint16_t LDRVal = 0;
+
 ////////////////////////////////////////////////////
 //__________________________________________________
 
@@ -510,7 +513,8 @@ void TouchButton() {
 
 //motion sensor code
 void MotionCheck() {
-  if (digitalRead(motion) && analogRead(LDR) < (tripval * 2)) {
+  LDRVal = analogRead(LDR);
+  if (digitalRead(motion) && LDRVal < (tripval * 2)) {
     Stamp = millis();
     expander1data |= 0b00100000;
     UpdateExpander(1);
