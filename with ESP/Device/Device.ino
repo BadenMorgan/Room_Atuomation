@@ -863,8 +863,14 @@ void InitVaraibles() {
   lcd.print(F("Loading       Variables"));
 #endif
   if (CodeCheck()) {
+#ifdef _DISPLAY_
+    lcd.print(F("     From EEPFROM"));
+#endif
     EEPROM2variables();
   } else {
+#ifdef _DISPLAY_
+    lcd.print(F("     From Defaults"));
+#endif
     clearEEPROM();
     LoadEEPROMDefaults();
   }
@@ -887,9 +893,9 @@ void PublishQue() {
     indicator1 |= timer << 6;
     byte firstpart = (LDRVal & 0xFF00) >> 8;
     byte secondpart = LDRVal & 0xFF;
-    byte msg[19] = {0x01, hours, minutes, seconds, days, months, tempyears, first2, second2, indicator1, expander1data, LastSecond, lastMinute, lastHour, lastDay, lastMonth, receivedflag, firstpart, secondpart};                              //message payload of MQTT package, put your payload here
+    byte msg[20] = {0x01, hours, minutes, seconds, days, months, tempyears, first2, second2, indicator1, expander1data, LastSecond, lastMinute, lastHour, lastDay, lastMonth, receivedflag, firstpart, secondpart, esp8266.disconnects};                             //message payload of MQTT package, put your payload here
     String topic = "d/0";                                  //topic of MQTT package, put your topic here
-    esp8266.MQTTPublish(topic, &msg[0], 19 );
+    esp8266.MQTTPublish(topic, &msg[0], 20 );
     receivedflag = 0;
   } else {
     byte tempcountdown = (byte)((CountDown / 1000) / 60);
