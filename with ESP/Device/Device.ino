@@ -227,11 +227,11 @@ void loop() {
   TimedWake();
   TimedOutput();
   HeatControl();
+  WWDMWSwitchCheck();
 #ifdef WIFIPRESENT
   esp8266.MQTTProcess(SubhQue, SubExec, PublishQue);
 #endif
   if (WakeMode) {
-    AwakeMode();
     RelayCounter();
     TouchButton();
     MotionCheck();
@@ -255,13 +255,6 @@ void InitDisplay() {
 }
 #endif
 
-
-//code that will run when the device is awake
-void AwakeMode() {
-  WWDMWSwitchCheck();
-  //delay(100);
-}
-
 //initialize pins
 void InitPins() {
   pinMode(window1, INPUT);
@@ -282,13 +275,15 @@ void UpdateExpander(uint8_t expand) {
   switch (expand) {
     case 1:
       expandrwrite(expansionadr1, expander1data);
+      EEPROM.write(34, expander1data);
       break;
     case 2:
       expandrwrite(expansionadr2, expander2data);
       break;
     case 3:
       expandrwrite(expansionadr1, expander1data);
-      expandrwrite(expansionadr2, expander2data);
+      expandrwrite(0, expander2data);
+      EEPROM.write(34, expander1data);
       break;
   }
 }
@@ -324,7 +319,9 @@ void WWDMWSwitchCheck() {
     expander2data &= 0xEF;
   }
   //update the indicators
-  UpdateExpander(2);
+  if (WakeMode) {
+    UpdateExpander(2);
+  }
 }
 
 //requests tempereture info from ds18b20 every second
@@ -463,10 +460,10 @@ void WakeToSleep () {
     UpdateExpander(1);
   } else {
     expander1data = 0;
-    expander2data = 0;
     UpdateExpander(3);
     Stamp = 0;
   }
+  EEPROM.write(10, WakeMode );
   delay(1000);
 }
 
@@ -835,6 +832,8 @@ void LoadEEPROMDefaults() {
   EEPROM.write(26, heatersON );
   EEPROM.write(28, Whour );
   EEPROM.write(30, Wminutes );
+  EEPROM.write(32, timer );
+  EEPROM.write(34, expander1data);
 }
 
 //load varaible from eeprom
@@ -854,6 +853,8 @@ void EEPROM2variables() {
   heatersON = EEPROM.read(26);
   Whour = EEPROM.read(28);
   Wminutes = EEPROM.read(30);
+  timer = EEPROM.read(32);
+  expander1data = EEPROM.read(24);
 }
 
 //initialize variables
@@ -937,6 +938,7 @@ void SubExec() {
                       WakeMode = 1;
                       WakeToSleep();
                     }
+                    EEPROM.write(10, WakeMode );
                     break;
                   }
                 case 1:
@@ -944,6 +946,7 @@ void SubExec() {
                     if (Buzz) {
                       Buzz = 0;
                     } else Buzz = 1;
+                    EEPROM.write(8, Buzz );
                     break;
                   }
                 case 2:
@@ -951,6 +954,7 @@ void SubExec() {
                     if (timer) {
                       timer = 0;
                     } else timer = 1;
+                    EEPROM.write(32, timer );
                     break;
                   }
                 case 3:
@@ -958,7 +962,7 @@ void SubExec() {
                     if (heatersON) {
                       heatersON = 0;
                     } else heatersON = 1;
-
+                    EEPROM.write(26, heatersON );
                     break;
                   }
                 default:
@@ -988,31 +992,56 @@ void SubExec() {
           }
         case 3:
           {
-
+            if (esp8266.Sub1->payloadlen == 2) {
+              CountDown = esp8266.Sub1->payload[1] * 60 * 1000;
+              EEPROM.write(6, esp8266.Sub1->payload[1]);
+              receivedflag = 3;
+            }
             break;
           }
         case 4:
           {
+            if (esp8266.Sub1->payloadlen == 3) {
+              EEPROM.write(12, esp8266.Sub1->payload[1] );
+              EEPROM.write(14, esp8266.Sub1->payload[2] );
+              receivedflag = 3;
+            }
             break;
           }
         case 5:
           {
+            if (esp8266.Sub1->payloadlen == 2) {
+              EEPROM.write(16, esp8266.Sub1->payload[1] );
+              receivedflag = 3;
+            }
             break;
           }
         case 6:
           {
+            if (esp8266.Sub1->payloadlen == 5) {
+              EEPROM.write(18, esp8266.Sub1->payload[1] );
+              EEPROM.write(20, esp8266.Sub1->payload[2] );
+              EEPROM.write(22, esp8266.Sub1->payload[3] );
+              EEPROM.write(24, esp8266.Sub1->payload[4] );
+              receivedflag = 3;
+            }
             break;
           }
         case 7:
           {
-            break;
+            if (esp8266.Sub1->payloadlen == 3) {
+              EEPROM.write(28, esp8266.Sub1->payload[1] );
+              EEPROM.write(30, esp8266.Sub1->payload[2] );
+              receivedflag = 3;
+              break;
+            }
           }
-        default:
-          {
-            break;
+          default:
+            {
+              break;
+            }
           }
       }
+      esp8266.Sub1->len = 0;
     }
-    esp8266.Sub1->len = 0;
   }
-}
