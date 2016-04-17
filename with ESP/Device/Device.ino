@@ -994,8 +994,8 @@ void SubExec() {
           {
             if (esp8266.Sub1->payloadlen == 2) {
               CountDown = esp8266.Sub1->payload[1];
-              CountDown = CountDown * 60;
-              CountDown = CountDown * 1000;
+              CountDown = CountDown * 240;
+              CountDown = CountDown * 250;
               EEPROM.write(6, esp8266.Sub1->payload[1]);
               receivedflag = 3;
             }
