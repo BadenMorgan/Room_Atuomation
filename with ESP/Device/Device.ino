@@ -815,7 +815,7 @@ uint8_t CodeCheck() {
 void LoadEEPROMDefaults() {
   //unique code for identifying first run
   EEPROM.write(0, 255);
-  EEPROM.write(3, 35);
+  EEPROM.write(2, 35);
   EEPROM.write(4, 72);
   //default values for
   uint8_t tempcount = (CountDown / 1000) / 60;
@@ -993,7 +993,9 @@ void SubExec() {
         case 3:
           {
             if (esp8266.Sub1->payloadlen == 2) {
-              CountDown = esp8266.Sub1->payload[1] * 60 * 1000;
+              CountDown = esp8266.Sub1->payload[1];
+              CountDown = CountDown * 60;
+              CountDown = CountDown * 1000;
               EEPROM.write(6, esp8266.Sub1->payload[1]);
               receivedflag = 3;
             }
@@ -1002,8 +1004,10 @@ void SubExec() {
         case 4:
           {
             if (esp8266.Sub1->payloadlen == 3) {
-              EEPROM.write(12, esp8266.Sub1->payload[1] );
-              EEPROM.write(14, esp8266.Sub1->payload[2] );
+              tempmax = esp8266.Sub1->payload[1];
+              tempmin = esp8266.Sub1->payload[2];
+              EEPROM.write(12, tempmax );
+              EEPROM.write(14, tempmin );
               receivedflag = 3;
             }
             break;
@@ -1011,7 +1015,8 @@ void SubExec() {
         case 5:
           {
             if (esp8266.Sub1->payloadlen == 2) {
-              EEPROM.write(16, esp8266.Sub1->payload[1] );
+              tripval = esp8266.Sub1->payload[1];
+              EEPROM.write(16, tripval );
               receivedflag = 3;
             }
             break;
@@ -1019,10 +1024,14 @@ void SubExec() {
         case 6:
           {
             if (esp8266.Sub1->payloadlen == 5) {
-              EEPROM.write(18, esp8266.Sub1->payload[1] );
-              EEPROM.write(20, esp8266.Sub1->payload[2] );
-              EEPROM.write(22, esp8266.Sub1->payload[3] );
-              EEPROM.write(24, esp8266.Sub1->payload[4] );
+              THourON = esp8266.Sub1->payload[1];
+              TMinuteON = esp8266.Sub1->payload[2];
+              THourOFF = esp8266.Sub1->payload[3];
+              TMinuteOFF = esp8266.Sub1->payload[4];
+              EEPROM.write(18, THourON );
+              EEPROM.write(20, TMinuteON );
+              EEPROM.write(22, THourOFF );
+              EEPROM.write(24, TMinuteOFF );
               receivedflag = 3;
             }
             break;
@@ -1030,18 +1039,20 @@ void SubExec() {
         case 7:
           {
             if (esp8266.Sub1->payloadlen == 3) {
-              EEPROM.write(28, esp8266.Sub1->payload[1] );
-              EEPROM.write(30, esp8266.Sub1->payload[2] );
+              Whour = esp8266.Sub1->payload[1];
+              Wminutes = esp8266.Sub1->payload[2];
+              EEPROM.write(28, Whour );
+              EEPROM.write(30, Wminutes );
               receivedflag = 3;
               break;
             }
           }
-          default:
-            {
-              break;
-            }
+        default:
+          {
+            break;
           }
       }
-      esp8266.Sub1->len = 0;
     }
+    esp8266.Sub1->len = 0;
   }
+}
