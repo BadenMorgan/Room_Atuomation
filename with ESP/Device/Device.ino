@@ -282,8 +282,12 @@ void UpdateExpander(uint8_t expand) {
       break;
     case 3:
       expandrwrite(expansionadr1, expander1data);
-      expandrwrite(0, expander2data);
+      expandrwrite(expansionadr2, expander2data);
       EEPROM.write(34, expander1data);
+      break;
+    case 4:
+      expandrwrite(expansionadr1, expander1data);
+      expandrwrite(expansionadr2, 0);
       break;
   }
 }
@@ -460,7 +464,7 @@ void WakeToSleep () {
     UpdateExpander(1);
   } else {
     expander1data = 0;
-    UpdateExpander(3);
+    UpdateExpander(4);
     Stamp = 0;
   }
   EEPROM.write(10, WakeMode );
@@ -602,24 +606,6 @@ void BuzzerAlert() {
     expander1data ^= 0b01000000;
   }
   UpdateExpander(1);
-}
-
-//memory saves for relevant settable variables
-void MemorySetGet(uint8_t setGet, uint8_t var) {
-  switch (setGet) {
-    case 0:
-      switch (var) {
-        case 0:
-          break;
-      }
-      break;
-    case 1:
-      switch (var) {
-        case 0:
-          break;
-      }
-      break;
-  }
 }
 
 //timed output relay code
@@ -772,9 +758,9 @@ void DisplaySettings() {
 
 //wake mode for morning  without turning lights on
 void TimedWake() {
-  if (Whour == hours && Wminutes == minutes) {
+  if (Whour == hours && Wminutes == minutes && seconds == 1) {
     WakeMode = 1;
-    expander1data = 0b10000000;
+    expander1data |= 0b10000000;
     UpdateExpander(1);
   }
 }
