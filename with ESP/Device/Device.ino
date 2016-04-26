@@ -786,6 +786,11 @@ void clearEEPROM() {
 //the current session
 uint8_t CodeCheck() {
   uint8_t flag = 1;
+#ifdef MAINDEBUG
+  Serial.println(EEPROM.read(0));
+  Serial.println(EEPROM.read(2));
+  Serial.println(EEPROM.read(4));
+#endif
   if (EEPROM.read(0) != 255) {
     flag = 0;
   }
@@ -804,6 +809,11 @@ void LoadEEPROMDefaults() {
   EEPROM.write(0, 255);
   EEPROM.write(2, 35);
   EEPROM.write(4, 72);
+#ifdef MAINDEBUG
+  Serial.println(EEPROM.read(0));
+  Serial.println(EEPROM.read(2));
+  Serial.println(EEPROM.read(4));
+#endif
   //default values for
   EEPROM.write(6, counttemplate);
   EEPROM.write(8, Buzz );
@@ -825,6 +835,8 @@ void LoadEEPROMDefaults() {
 //load varaible from eeprom
 void EEPROM2variables() {
   counttemplate = EEPROM.read(6);
+  CountDown = counttemplate * 240;
+  CountDown = CountDown * 250;
   Buzz = EEPROM.read(8);
   WakeMode = EEPROM.read(10);
   tempmax = EEPROM.read(12);
@@ -838,7 +850,7 @@ void EEPROM2variables() {
   Whour = EEPROM.read(28);
   Wminutes = EEPROM.read(30);
   timer = EEPROM.read(32);
-  expander1data = EEPROM.read(24);
+  expander1data = EEPROM.read(34);
 }
 
 //initialize variables
@@ -847,14 +859,23 @@ void InitVaraibles() {
   lcd.clear();
   lcd.print(F("Loading       Variables"));
 #endif
+#ifdef MAINDEBUG
+  Serial.println(F("Loading Variables"));
+#endif
   if (CodeCheck()) {
 #ifdef _DISPLAY_
     lcd.print(F("     From EEPFROM"));
+#endif
+#ifdef MAINDEBUG
+    Serial.println(F("From EEPFROM"));
 #endif
     EEPROM2variables();
   } else {
 #ifdef _DISPLAY_
     lcd.print(F("     From Defaults"));
+#endif
+#ifdef MAINDEBUG
+    Serial.println(F("From Defaults"));
 #endif
     clearEEPROM();
     LoadEEPROMDefaults();
@@ -879,17 +900,17 @@ void PublishQue() {
     byte firstpart = (LDRVal & 0xFF00) >> 8;
     byte secondpart = LDRVal & 0xFF;
     uint32_t Tleft = millis() - Stamp;
-    Tleft = CountDown - Tleft;   
+    Tleft = CountDown - Tleft;
     Tleft = Tleft / 240;
     Tleft = Tleft / 250;
     byte Tleftbyte = Tleft & 0xFF;
     //byte timeleft = counttemplate - Tleftbyte;
     byte msg[21] = {0x01, hours, minutes, seconds, days, months, tempyears, first2, second2, indicator1, expander1data, LastSecond, lastMinute, lastHour, lastDay, lastMonth, receivedflag, firstpart, secondpart, esp8266.disconnects, Tleftbyte};                             //message payload of MQTT package, put your payload here
     String topic = "d/0";                                  //topic of MQTT package, put your topic here
-    esp8266.MQTTPublish(topic, &msg[0], 20 );
+    esp8266.MQTTPublish(topic, &msg[0], 21 );
     receivedflag = 0;
   } else {
-    
+
     byte msg[11] = {0x02, counttemplate, tempmax, tempmin, tripval, THourON, TMinuteON, THourOFF, TMinuteOFF, Whour, Wminutes};                                //message payload of MQTT package, put your payload here
     String topic = "d/0";                                  //topic of MQTT package, put your topic here
     esp8266.MQTTPublish(topic, &msg[0], 11 );
