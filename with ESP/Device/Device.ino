@@ -83,6 +83,7 @@ uint32_t Stamp3 = 0;
 uint32_t Stamp4 = 0;
 
 uint32_t CountDown = 7200000;//120 minutes
+byte counttemplate = 120;
 
 //boolean to see if device in awake or not
 uint8_t WakeMode = 1;
@@ -659,7 +660,7 @@ void DisplaySettings() {
     lcd.clear();
 
     lcd.print(F("Countdown: "));
-    byte temp1 = (CountDown / 1000) / 60;
+    byte temp1 = counttemplate;
     if (temp1 < 10) {
       lcd.print(F("00"));
     } else if (temp1 < 100) {
@@ -804,8 +805,7 @@ void LoadEEPROMDefaults() {
   EEPROM.write(2, 35);
   EEPROM.write(4, 72);
   //default values for
-  uint8_t tempcount = (CountDown / 1000) / 60;
-  EEPROM.write(6, tempcount);
+  EEPROM.write(6, counttemplate);
   EEPROM.write(8, Buzz );
   EEPROM.write(10, WakeMode );
   EEPROM.write(12, tempmax );
@@ -824,9 +824,7 @@ void LoadEEPROMDefaults() {
 
 //load varaible from eeprom
 void EEPROM2variables() {
-  uint32_t tempcount = EEPROM.read(6);
-  tempcount = tempcount * 1000 * 60;
-  CountDown = tempcount;
+  counttemplate = EEPROM.read(6);
   Buzz = EEPROM.read(8);
   WakeMode = EEPROM.read(10);
   tempmax = EEPROM.read(12);
@@ -880,13 +878,19 @@ void PublishQue() {
     indicator1 |= timer << 6;
     byte firstpart = (LDRVal & 0xFF00) >> 8;
     byte secondpart = LDRVal & 0xFF;
-    byte msg[20] = {0x01, hours, minutes, seconds, days, months, tempyears, first2, second2, indicator1, expander1data, LastSecond, lastMinute, lastHour, lastDay, lastMonth, receivedflag, firstpart, secondpart, esp8266.disconnects};                             //message payload of MQTT package, put your payload here
+    uint32_t Tleft = millis() - Stamp;
+    Tleft = CountDown - Tleft;   
+    Tleft = Tleft / 240;
+    Tleft = Tleft / 250;
+    byte Tleftbyte = Tleft & 0xFF;
+    //byte timeleft = counttemplate - Tleftbyte;
+    byte msg[21] = {0x01, hours, minutes, seconds, days, months, tempyears, first2, second2, indicator1, expander1data, LastSecond, lastMinute, lastHour, lastDay, lastMonth, receivedflag, firstpart, secondpart, esp8266.disconnects, Tleftbyte};                             //message payload of MQTT package, put your payload here
     String topic = "d/0";                                  //topic of MQTT package, put your topic here
     esp8266.MQTTPublish(topic, &msg[0], 20 );
     receivedflag = 0;
   } else {
-    byte tempcountdown = (byte)((CountDown / 1000) / 60);
-    byte msg[11] = {0x02, tempcountdown, tempmax, tempmin, tripval, THourON, TMinuteON, THourOFF, TMinuteOFF, Whour, Wminutes};                                //message payload of MQTT package, put your payload here
+    
+    byte msg[11] = {0x02, counttemplate, tempmax, tempmin, tripval, THourON, TMinuteON, THourOFF, TMinuteOFF, Whour, Wminutes};                                //message payload of MQTT package, put your payload here
     String topic = "d/0";                                  //topic of MQTT package, put your topic here
     esp8266.MQTTPublish(topic, &msg[0], 11 );
     receivedflag = 0;
@@ -979,8 +983,8 @@ void SubExec() {
         case 3:
           {
             if (esp8266.Sub1->payloadlen == 2) {
-              CountDown = esp8266.Sub1->payload[1];
-              CountDown = CountDown * 240;
+              counttemplate = esp8266.Sub1->payload[1];
+              CountDown = counttemplate * 240;
               CountDown = CountDown * 250;
               EEPROM.write(6, esp8266.Sub1->payload[1]);
               receivedflag = 3;
