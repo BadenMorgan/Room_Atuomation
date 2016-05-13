@@ -276,7 +276,6 @@ void UpdateExpander(uint8_t expand) {
   switch (expand) {
     case 1:
       expandrwrite(expansionadr1, expander1data);
-      EEPROM.write(34, expander1data);
       break;
     case 2:
       expandrwrite(expansionadr2, expander2data);
@@ -284,13 +283,13 @@ void UpdateExpander(uint8_t expand) {
     case 3:
       expandrwrite(expansionadr1, expander1data);
       expandrwrite(expansionadr2, expander2data);
-      EEPROM.write(34, expander1data);
       break;
     case 4:
       expandrwrite(expansionadr1, expander1data);
       expandrwrite(expansionadr2, 0);
       break;
   }
+  EEPROM.write(34, expander1data);
 }
 
 //check windows and doors and set indicators
@@ -460,11 +459,12 @@ void IRreceive() {
 //wakemode change over function
 void WakeToSleep () {
   if (WakeMode) {
-    expander1data = 0b10100000;
+    expander1data |= 0b10100000;
     Stamp = millis();
     UpdateExpander(1);
   } else {
-    expander1data = 0;
+    expander1data |= 0b10110000;
+    expander1data ^= 0b10110000;
     UpdateExpander(4);
     Stamp = 0;
   }
@@ -634,15 +634,15 @@ void HeatControl() {
     if (temperature < 23) {
       expander1data |= 0b1000;
     }
-    if (temperature > 26) {
+    if (temperature > 25) {
       expander1data |= 0b10;
       expander1data ^= 0b10;
     }
-    if (temperature > 26.5) {
+    if (temperature > 25.5) {
       expander1data |= 0b100;
       expander1data ^= 0b100;
     }
-    if (temperature > 27) {
+    if (temperature > 26) {
       expander1data |= 0b1000;
       expander1data ^= 0b1000;
     }
