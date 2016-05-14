@@ -634,15 +634,15 @@ void HeatControl() {
     if (temperature < 23) {
       expander1data |= 0b1000;
     }
-    if (temperature > 25) {
+    if (temperature > 25.5) {
       expander1data |= 0b10;
       expander1data ^= 0b10;
     }
-    if (temperature > 25.5) {
+    if (temperature > 26) {
       expander1data |= 0b100;
       expander1data ^= 0b100;
     }
-    if (temperature > 26) {
+    if (temperature > 26.5) {
       expander1data |= 0b1000;
       expander1data ^= 0b1000;
     }
