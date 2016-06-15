@@ -389,9 +389,9 @@ void DisplayInfoUpdate() {
     } else {
       lcd.print(F("RTC read error"));
     }
-    delay(9000);
+    //delay(9000);
 #endif
-    soft_restart();
+    //soft_restart();
   }
 }
 
